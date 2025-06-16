@@ -9,7 +9,7 @@ async def ask_interviewer(
 ) -> dict[str, Any]:
     result = await graph.ainvoke({
         "messages": history,
-        "job_context": job_context
+        "job_input": job_context
     })
     return {
         "text": result["text"],
