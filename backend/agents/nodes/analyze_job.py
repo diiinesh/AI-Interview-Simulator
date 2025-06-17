@@ -3,11 +3,11 @@ from langchain.schema import SystemMessage
 from backend.services.llm_groq import llm
 
 SYSTEM_PROMPT = """
-You're a helpful assistant for analyzing job vacancies.
+Du bist ein hilfreicher Assistent zur Analyse von Stellenanzeigen.
 
-Extract role, required skills, and a short summary from this job post.
+Extrahiere Rolle, erforderliche Fähigkeiten und eine kurze Zusammenfassung aus dieser Stellenbeschreibung.
 
-Respond in this JSON format:
+Antworte in diesem JSON-Format:
 {
   "job_role": "...",
   "required_skills": ["...", "..."],

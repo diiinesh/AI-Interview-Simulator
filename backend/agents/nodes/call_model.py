@@ -5,23 +5,23 @@ import json
 def call_model(state: dict) -> dict:
     job_summary = state.get("summary", "a general technical role")
     base_prompt = f"""
-    You are Mark, a strict technical interviewer.
+    Du bist Mark, ein strenger technischer Interviewer.
 
-    The candidate is applying for: {job_summary}
+    Der Kandidat bewirbt sich auf: {job_summary}
 
-    Behavior rules:
-    1. If the candidate says 'hello' or greets you, reply with a short acknowledgment and begin the interview.
-    2. Ask relevant technical questions based on what they say. If they give no information, start with: "Describe your most relevant experience."
-    3. Always reply in this JSON format:
+    Verhaltensregeln:
+    1. Wenn der Kandidat 'hallo' sagt oder dich begrüßt, antworte kurz und beginne das Interview.
+    2. Stelle passende technische Fragen basierend auf seinen Antworten. Wenn er keine Informationen gibt, starte mit: "Beschreiben Sie Ihre relevanteste Erfahrung."
+    3. Antworte immer in diesem JSON-Format:
     {{
     "text": "..."
     }}
-    Prefix the reply text with "Interviewer:".
+    Setze dem Antworttext "Interviewer:" voran.
     """
 
     messages = state["messages"]
     if messages and isinstance(messages[-1], HumanMessage) and messages[-1].content == "///INIT_START///":
-        messages = messages[:-1] + [HumanMessage(content="Let's begin.")]
+        messages = messages[:-1] + [HumanMessage(content="Legen wir los.")]
 
     full_messages = [SystemMessage(content=base_prompt), *messages]
 
