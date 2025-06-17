@@ -5,7 +5,7 @@ from backend.agents.interviewer_graph import graph
 
 async def ask_interviewer(
     history: list[BaseMessage],
-    job_context: str = ""
+    job_context: str | None = None
 ) -> dict[str, Any]:
     result = await graph.ainvoke({
         "messages": history,

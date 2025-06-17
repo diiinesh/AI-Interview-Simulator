@@ -22,32 +22,35 @@ async def chat_socket(ws: WebSocket):
             payload = await ws.receive_json()
             msg_type = payload.get("type")
 
-            if msg_type == "job_context":
-                # Payload may contain raw text or a URL to fetch
-                if url := payload.get("url"):
-                    try:
-                        job_context = await load_job_from_url(url)
-                        logger.info(f"Loaded job from URL: {url}")
-                    except Exception as e:
-                        await ws.send_json({"type": "error", "data": f"Failed to load URL: {e}"})
-                        continue
-                else:
-                    job_context = payload.get("data", "")
-                    logger.info(f"Received job context text: {job_context[:80]}...")
-
-                await ws.send_json({"type": "ack", "data": "Job context received."})
-                continue  # Wait for next input
-
-            elif msg_type == "job_context_pdf":
+            if msg_type == "job_context_pdf":
                 base64_content = payload.get("content")
                 if not base64_content:
                     await ws.send_json({"type": "error", "data": "Missing PDF content"})
                     continue
                 try:
+                    # Load job posting from PDF
                     job_context = await load_job_from_pdf(base64_content)
                     logger.info("Loaded job from PDF")
                     await ws.send_json({"type": "ack", "data": "Job PDF received."})
+
+                    # ---- Trigger first interviewer message right away ----
+                    memory.chat_memory.add_user_message("///INIT_START///")
+                    history = memory.load_memory_variables({})["history"]
+                    result = await ask_interviewer(history, job_context=job_context)
+
+                    reply_text = result["text"]
+                    memory.chat_memory.add_ai_message(reply_text)
+
+                    await ws.send_json({"type": "text", "data": reply_text})
+
+                    if result.get("audio"):
+                        await ws.send_bytes(result["audio"])
+
+                    if result.get("error"):
+                        await ws.send_json({"type": "error", "data": result["error"]})
+
                 except Exception as e:
+                    logger.exception("Failed to load job or send initial message")
                     await ws.send_json({"type": "error", "data": f"Failed to read PDF: {e}"})
                 continue
 
@@ -55,24 +58,19 @@ async def chat_socket(ws: WebSocket):
                 user_text: str = payload.get("text", "")
                 want_tts: bool = payload.get("tts", False)
 
-                # 1. Update memory
                 memory.chat_memory.add_user_message(user_text)
                 history = memory.load_memory_variables({})["history"]
 
-                # 2. Call LangGraph with full state
                 result = await ask_interviewer(history, job_context=job_context)
 
                 reply_text = result["text"]
                 memory.chat_memory.add_ai_message(reply_text)
 
-                # 3. Send text
                 await ws.send_json({"type": "text", "data": reply_text})
 
-                # 4. Optionally send audio
                 if want_tts and result.get("audio"):
                     await ws.send_bytes(result["audio"])
 
-                # 5. Optional error
                 if result.get("error"):
                     await ws.send_json({"type": "error", "data": result["error"]})
 
