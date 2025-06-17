@@ -11,11 +11,11 @@ class SelfCritiqueTool(BaseTool):
     def _run(self, draft: str) -> str:
         """Run the tool with the given draft reply."""
         prompt = (
-            "You are a strict technical interviewer. "
-            "Check if the following draft reply matches your persona:\n\n"
+            "Du bist ein strenger technischer Interviewer. "
+            "Prüfe, ob die folgende Entwurfsantwort zu deiner Persona passt:\n\n"
             f"{draft}\n\n"
-            "If it does not match, rewrite it to be more strict and professional. "
-            "If it does match, return it unchanged."
+            "Wenn sie nicht passt, schreibe sie strenger und professioneller um. "
+            "Wenn sie passt, gib sie unverändert zurück."
         )
         
         response = llm.invoke(prompt)
