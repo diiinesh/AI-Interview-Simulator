@@ -10,8 +10,8 @@ function App() {
   return (
     <div className="App">
       {!interactionMode && <JobInput onInteractionModeSelect={setInteractionMode} />}
-      {interactionMode === "chat" && <InterviewChat />}
-      {interactionMode === "simulation" && <InterviewSimulation />}
+      {interactionMode === "chat" && <InterviewChat onBack={() => setInteractionMode(null)} />}
+      {interactionMode === "simulation" && <InterviewSimulation onBack={() => setInteractionMode(null)} />}
     </div>
   );
 }
