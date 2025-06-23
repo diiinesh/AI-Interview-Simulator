@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import MicRecorder from 'mic-recorder-to-mp3';
 
 function InterviewChat() {
     const [message, setMessage] = useState('');
@@ -9,6 +10,10 @@ function InterviewChat() {
     const logRef = useRef(null);
     const socketRef = useRef(null);
     const recognitionRef = useRef(null);
+    const mediaRecorderRef = useRef(null);
+    const recordedChunksRef = useRef([]);
+    const [isRecording, setIsRecording] = useState(false);
+    const recorder = useRef(new MicRecorder({ bitRate: 128 }));
 
 
     const addLog = useCallback((html) => {
@@ -60,7 +65,7 @@ function InterviewChat() {
 
             switch (msg.type) {
                 case 'text':
-                    addLog(`<span class="bot">Interviewer:</span> ${msg.data}`);
+                    addLog(`<span class="bot"></span> ${msg.data}`);
                     break;
                 case 'error':
                     addLog(`<span class="bot" style="color: red;">Error:</span> ${msg.data}`);
@@ -116,6 +121,43 @@ function InterviewChat() {
         };
     }, [tts, addLog]);
 
+    const handleStartRecording = async () => {
+        try {
+            await recorder.current.start();
+            setIsRecording(true);
+            addLog('<span style="color: gray;">🎙️ Recording started (MP3)...</span>');
+        } catch (e) {
+            console.error('Failed to start recorder:', e);
+            addLog('<span style="color: red;">❌ Mic access error</span>');
+        }
+    };
+
+
+    const handleStopRecording = async () => {
+        try {
+            const [buffer, blob] = await recorder.current.stop().getMp3();
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Audio = reader.result.split(',')[1];
+
+                socketRef.current?.send(JSON.stringify({
+                    type: 'user_audio',
+                    audio: base64Audio,
+                    tts: tts,
+                }));
+
+                addLog('<span style="color: gray;">🎧 MP3 audio sent for transcription...</span>');
+            };
+
+            reader.readAsDataURL(blob);
+            setIsRecording(false);
+        } catch (e) {
+            console.error('Failed to stop recorder:', e);
+            addLog('<span style="color: red;">❌ Recording failed</span>');
+            setIsRecording(false);
+        }
+    };
 
     useEffect(() => {
         console.log('Connecting to WebSocket...');
@@ -158,7 +200,7 @@ function InterviewChat() {
         }
 
         const recognition = new SpeechRecognition();
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
         recognition.lang = 'de-DE'; // Set to 'en-US' for English interviews
@@ -291,20 +333,38 @@ function InterviewChat() {
                     Send
                 </button>
 
-                <button
-                    onClick={handleStartSpeaking}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontSize: '14px'
-                    }}
-                >
-                    🎤 Speak
-                </button>
+                {!isRecording ? (
+                    <button
+                        onClick={handleStartRecording}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        🎤 Start Recording
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleStopRecording}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        🛑 Stop Recording
+                    </button>
+                )}
+
 
                 <label style={{
                     display: 'flex',
