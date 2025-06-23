@@ -1,8 +1,10 @@
 from fastapi import APIRouter, WebSocket
 import logging, traceback
+import base64
 
 from backend.agents.interviewer_graph import graph
 from backend.services.tts_eleven import tts
+from backend.services.stt_assembly import stt
 from backend.utils.job_loader import load_job_from_url, load_job_from_pdf
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import HumanMessage, AIMessage
@@ -57,6 +59,38 @@ async def chat_socket(ws: WebSocket):
             elif msg_type == "user_message":
                 user_text: str = payload.get("text", "")
                 want_tts: bool = payload.get("tts", False)
+
+                memory.chat_memory.add_user_message(user_text)
+                history = memory.load_memory_variables({})["history"]
+
+                result = await ask_interviewer(history, job_context=job_context)
+
+                reply_text = result["text"]
+                memory.chat_memory.add_ai_message(reply_text)
+
+                await ws.send_json({"type": "text", "data": reply_text})
+
+                if want_tts and result.get("audio"):
+                    await ws.send_bytes(result["audio"])
+
+                if result.get("error"):
+                    await ws.send_json({"type": "error", "data": result["error"]})
+
+            elif msg_type == "user_audio":
+                b64_audio: str = payload.get("audio", "")
+                want_tts: bool = payload.get("tts", False)
+
+                try:
+                    audio_bytes = base64.b64decode(b64_audio)
+                except Exception:
+                    await ws.send_json({"type": "error", "data": "Invalid audio encoding"})
+                    continue
+
+                try:
+                    user_text = await stt(audio_bytes)
+                except Exception as e:
+                    await ws.send_json({"type": "error", "data": f"STT failed: {e}"})
+                    continue
 
                 memory.chat_memory.add_user_message(user_text)
                 history = memory.load_memory_variables({})["history"]
