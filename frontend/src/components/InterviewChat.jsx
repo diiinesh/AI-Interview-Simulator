@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import MicRecorder from 'mic-recorder-to-mp3';
 
-function InterviewChat() {
+function InterviewChat({ onBack }) {
     const [message, setMessage] = useState('');
     const [tts, setTts] = useState(false);
     const [log, setLog] = useState([]);
@@ -281,6 +281,11 @@ function InterviewChat() {
 
     return (
         <div>
+            <div style={{ marginBottom: 10 }}>
+                <button onClick={onBack} style={{ padding: '6px 12px', background: '#eee', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer' }}>
+                    ← Back
+                </button>
+            </div>
             {getStatusIndicator()}
 
             <div

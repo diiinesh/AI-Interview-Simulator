@@ -131,7 +131,7 @@ function JobInput({ onInteractionModeSelect }) {
   useEffect(() => cleanup, [cleanup]);
 
   return (
-    <div style={{ marginBottom: '20px' }}>
+    <div style={{ margin: '40px auto', maxWidth: '600px' }}>
       <h4>Job Posting PDF</h4>
       <p style={{ fontSize: '0.9em', color: '#666' }}>
         💡 Please upload a PDF version of the job posting. On most job platforms, 
@@ -189,7 +189,7 @@ function JobInput({ onInteractionModeSelect }) {
               cursor: 'pointer'
             }}
           >
-            Start Chat
+            Start Interview Chat
           </button>
 
           <button
