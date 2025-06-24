@@ -28,16 +28,17 @@ def call_model(state: dict) -> dict:
     response = llm.invoke(full_messages)
     content = response.content if isinstance(response.content, str) else str(response.content)
 
-    try:
-        parsed = json.loads(content)
-        return {
-            **state,
-            "messages": [*messages, response],
-            "text": parsed["text"]
-        }
-    except:
-        return {
-            **state,
-            "messages": [*messages, response],
-            "text": response.content
-        }
+    json_start = content.find("{")
+    parsed_text = None
+    if json_start != -1:
+        try:
+            parsed = json.loads(content[json_start:])
+            parsed_text = parsed["text"]
+        except Exception:
+            parsed_text = None
+
+    return {
+        **state,
+        "messages": [*messages, response],
+        "text": parsed_text if parsed_text is not None else content
+    }

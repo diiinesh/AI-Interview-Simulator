@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import MicRecorder from 'mic-recorder-to-mp3';
 
-function InterviewChat() {
+function InterviewChat({ onBack, socket }) {
     const [message, setMessage] = useState('');
     const [tts, setTts] = useState(false);
     const [log, setLog] = useState([]);
@@ -9,6 +10,10 @@ function InterviewChat() {
     const logRef = useRef(null);
     const socketRef = useRef(null);
     const recognitionRef = useRef(null);
+    const mediaRecorderRef = useRef(null);
+    const recordedChunksRef = useRef([]);
+    const [isRecording, setIsRecording] = useState(false);
+    const recorder = useRef(new MicRecorder({ bitRate: 128 }));
 
 
     const addLog = useCallback((html) => {
@@ -60,7 +65,7 @@ function InterviewChat() {
 
             switch (msg.type) {
                 case 'text':
-                    addLog(`<span class="bot">Interviewer:</span> ${msg.data}`);
+                    addLog(`<span class="bot"></span> ${msg.data}`);
                     break;
                 case 'error':
                     addLog(`<span class="bot" style="color: red;">Error:</span> ${msg.data}`);
@@ -116,14 +121,51 @@ function InterviewChat() {
         };
     }, [tts, addLog]);
 
+    const handleStartRecording = async () => {
+        try {
+            await recorder.current.start();
+            setIsRecording(true);
+            addLog('<span style="color: gray;">🎙️ Recording started (MP3)...</span>');
+        } catch (e) {
+            console.error('Failed to start recorder:', e);
+            addLog('<span style="color: red;">❌ Mic access error</span>');
+        }
+    };
+
+
+    const handleStopRecording = async () => {
+        try {
+            const [buffer, blob] = await recorder.current.stop().getMp3();
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Audio = reader.result.split(',')[1];
+
+                socketRef.current?.send(JSON.stringify({
+                    type: 'user_audio',
+                    audio: base64Audio,
+                    tts: tts,
+                }));
+
+                addLog('<span style="color: gray;">🎧 MP3 audio sent for transcription...</span>');
+            };
+
+            reader.readAsDataURL(blob);
+            setIsRecording(false);
+        } catch (e) {
+            console.error('Failed to stop recorder:', e);
+            addLog('<span style="color: red;">❌ Recording failed</span>');
+            setIsRecording(false);
+        }
+    };
 
     useEffect(() => {
-        console.log('Connecting to WebSocket...');
-        const socket = new WebSocket('ws://localhost:8000/ws');
-        socket.binaryType = 'arraybuffer';
-        socketRef.current = socket;
-        window.ws = socket;
+        if (!socket) return;
 
+        console.log('Using existing WebSocket');
+        socketRef.current = socket;
+
+        socket.binaryType = 'arraybuffer';
         socket.onopen = () => {
             console.log('WebSocket connected');
             addLog('<em style="color: green;">✅ Connected to server</em>');
@@ -145,10 +187,12 @@ function InterviewChat() {
         socket.onmessage = handleWebSocketMessage;
 
         return () => {
-            socket.close();
-            setWsStatus('closed');
+            socket.onopen = null;
+            socket.onclose = null;
+            socket.onerror = null;
+            socket.onmessage = null;
         };
-    }, [addLog, handleWebSocketMessage]);
+    }, [socket, addLog, handleWebSocketMessage]);
 
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -158,7 +202,7 @@ function InterviewChat() {
         }
 
         const recognition = new SpeechRecognition();
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
         recognition.lang = 'de-DE'; // Set to 'en-US' for English interviews
@@ -239,6 +283,11 @@ function InterviewChat() {
 
     return (
         <div>
+            <div style={{ marginBottom: 10 }}>
+                <button onClick={onBack} style={{ padding: '6px 12px', background: '#eee', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer' }}>
+                    ← Back
+                </button>
+            </div>
             {getStatusIndicator()}
 
             <div
@@ -291,20 +340,38 @@ function InterviewChat() {
                     Send
                 </button>
 
-                <button
-                    onClick={handleStartSpeaking}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontSize: '14px'
-                    }}
-                >
-                    🎤 Speak
-                </button>
+                {!isRecording ? (
+                    <button
+                        onClick={handleStartRecording}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        🎤 Start Recording
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleStopRecording}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        🛑 Stop Recording
+                    </button>
+                )}
+
 
                 <label style={{
                     display: 'flex',
