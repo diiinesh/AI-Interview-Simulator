@@ -13,9 +13,8 @@ const validateFile = (file) => {
 };
 
 const formatFileSize = (bytes) => (bytes / 1024 / 1024).toFixed(2);
-const isWebSocketReady = () => window.ws?.readyState === WebSocket.OPEN;
-
-function JobInput({ onInteractionModeSelect }) {
+function JobInput({ onInteractionModeSelect, socket }) {
+  const isWebSocketReady = useCallback(() => socket?.readyState === WebSocket.OPEN, [socket]);
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState('');
   const [uploadStatus, setUploadStatus] = useState('');
@@ -117,7 +116,7 @@ function JobInput({ onInteractionModeSelect }) {
 
       if (!isWebSocketReady()) throw new Error('WebSocket disconnected during processing');
 
-      window.ws.send(JSON.stringify(payload));
+      socket?.send(JSON.stringify(payload));
       setUploadStatus(`✅ Sent PDF: ${file.name}`);
       setShowActionButtons(true);
     } catch (error) {
@@ -126,12 +125,12 @@ function JobInput({ onInteractionModeSelect }) {
     } finally {
       cleanup();
     }
-  }, [file, isUploading, readFileAsBase64, cleanup]);
+  }, [file, isUploading, readFileAsBase64, cleanup, isWebSocketReady, socket]);
 
   useEffect(() => cleanup, [cleanup]);
 
   return (
-    <div style={{ marginBottom: '20px' }}>
+    <div style={{ margin: '40px auto', maxWidth: '600px' }}>
       <h4>Job Posting PDF</h4>
       <p style={{ fontSize: '0.9em', color: '#666' }}>
         💡 Please upload a PDF version of the job posting. On most job platforms, 
@@ -189,7 +188,7 @@ function JobInput({ onInteractionModeSelect }) {
               cursor: 'pointer'
             }}
           >
-            Start Chat
+            Start Interview Chat
           </button>
 
           <button
