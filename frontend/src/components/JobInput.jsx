@@ -13,9 +13,8 @@ const validateFile = (file) => {
 };
 
 const formatFileSize = (bytes) => (bytes / 1024 / 1024).toFixed(2);
-const isWebSocketReady = () => window.ws?.readyState === WebSocket.OPEN;
-
-function JobInput({ onInteractionModeSelect }) {
+function JobInput({ onInteractionModeSelect, socket }) {
+  const isWebSocketReady = useCallback(() => socket?.readyState === WebSocket.OPEN, [socket]);
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState('');
   const [uploadStatus, setUploadStatus] = useState('');
@@ -117,7 +116,7 @@ function JobInput({ onInteractionModeSelect }) {
 
       if (!isWebSocketReady()) throw new Error('WebSocket disconnected during processing');
 
-      window.ws.send(JSON.stringify(payload));
+      socket?.send(JSON.stringify(payload));
       setUploadStatus(`✅ Sent PDF: ${file.name}`);
       setShowActionButtons(true);
     } catch (error) {
@@ -126,7 +125,7 @@ function JobInput({ onInteractionModeSelect }) {
     } finally {
       cleanup();
     }
-  }, [file, isUploading, readFileAsBase64, cleanup]);
+  }, [file, isUploading, readFileAsBase64, cleanup, isWebSocketReady, socket]);
 
   useEffect(() => cleanup, [cleanup]);
 

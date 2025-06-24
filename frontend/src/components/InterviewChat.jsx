@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import MicRecorder from 'mic-recorder-to-mp3';
 
-function InterviewChat({ onBack }) {
+function InterviewChat({ onBack, socket }) {
     const [message, setMessage] = useState('');
     const [tts, setTts] = useState(false);
     const [log, setLog] = useState([]);
@@ -160,12 +160,12 @@ function InterviewChat({ onBack }) {
     };
 
     useEffect(() => {
-        console.log('Connecting to WebSocket...');
-        const socket = new WebSocket('ws://localhost:8000/ws');
-        socket.binaryType = 'arraybuffer';
-        socketRef.current = socket;
-        window.ws = socket;
+        if (!socket) return;
 
+        console.log('Using existing WebSocket');
+        socketRef.current = socket;
+
+        socket.binaryType = 'arraybuffer';
         socket.onopen = () => {
             console.log('WebSocket connected');
             addLog('<em style="color: green;">✅ Connected to server</em>');
@@ -187,10 +187,12 @@ function InterviewChat({ onBack }) {
         socket.onmessage = handleWebSocketMessage;
 
         return () => {
-            socket.close();
-            setWsStatus('closed');
+            socket.onopen = null;
+            socket.onclose = null;
+            socket.onerror = null;
+            socket.onmessage = null;
         };
-    }, [addLog, handleWebSocketMessage]);
+    }, [socket, addLog, handleWebSocketMessage]);
 
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
