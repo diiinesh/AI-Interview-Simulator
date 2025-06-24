@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function InterviewSimulation({ onBack }) {
+export default function InterviewSimulation({ onBack, socket }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#111', color: 'white' }}>
       <div style={{ padding: '10px', background: '#333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
