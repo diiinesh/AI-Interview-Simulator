@@ -204,6 +204,20 @@ function JobInput({ onInteractionModeSelect, socket }) {
           >
             Start Interview Simulation
           </button>
+          <button
+            onClick={() => onInteractionModeSelect("interviewSimulation")}
+            style={{
+              marginLeft: '10px',
+              padding: '8px 16px',
+              backgroundColor: '#0ea5e9',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Start Teams Call
+          </button>
         </div>
       )}
     </div>
