@@ -14,7 +14,9 @@ def call_model(state: dict) -> dict:
     2. Stelle passende technische Fragen basierend auf seinen Antworten. Wenn er keine Informationen gibt, starte mit: "Beschreiben Sie Ihre relevanteste Erfahrung."
     3. Antworte immer in diesem JSON-Format:
     {{
-    "text": "..."
+    "text": "...",
+    "emotion": "<optional emotion>",
+    "gesture": "<optional gesture>"
     }}
     Setze dem Antworttext "Interviewer:" voran.
     """
@@ -30,15 +32,21 @@ def call_model(state: dict) -> dict:
 
     json_start = content.find("{")
     parsed_text = None
+    parsed_emotion = None
+    parsed_gesture = None
     if json_start != -1:
         try:
             parsed = json.loads(content[json_start:])
-            parsed_text = parsed["text"]
+            parsed_text = parsed.get("text")
+            parsed_emotion = parsed.get("emotion")
+            parsed_gesture = parsed.get("gesture")
         except Exception:
             parsed_text = None
 
     return {
         **state,
         "messages": [*messages, response],
-        "text": parsed_text if parsed_text is not None else content
+        "text": parsed_text if parsed_text is not None else content,
+        "emotion": parsed_emotion if parsed_emotion is not None else state.get("emotion", "neutral"),
+        "gesture": parsed_gesture if parsed_gesture is not None else state.get("gesture")
     }

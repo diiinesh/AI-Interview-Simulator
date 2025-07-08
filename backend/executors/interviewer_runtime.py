@@ -13,6 +13,8 @@ async def ask_interviewer(
     })
     return {
         "text": result["text"],
+        "emotion": result.get("emotion"),
+        "gesture": result.get("gesture"),
         "audio": result.get("audio"),
         "error": result.get("error"),
         "messages": result.get("messages", [])

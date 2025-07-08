@@ -43,7 +43,12 @@ async def chat_socket(ws: WebSocket):
                     reply_text = result["text"]
                     memory.chat_memory.add_ai_message(reply_text)
 
-                    await ws.send_json({"type": "text", "data": reply_text})
+                    await ws.send_json({
+                        "type": "text",
+                        "data": reply_text,
+                        "emotion": result.get("emotion"),
+                        "gesture": result.get("gesture")
+                    })
 
                     if result.get("audio"):
                         await ws.send_bytes(result["audio"])
@@ -68,7 +73,12 @@ async def chat_socket(ws: WebSocket):
                 reply_text = result["text"]
                 memory.chat_memory.add_ai_message(reply_text)
 
-                await ws.send_json({"type": "text", "data": reply_text})
+                await ws.send_json({
+                    "type": "text",
+                    "data": reply_text,
+                    "emotion": result.get("emotion"),
+                    "gesture": result.get("gesture")
+                })
 
                 if want_tts and result.get("audio"):
                     await ws.send_bytes(result["audio"])
@@ -100,7 +110,12 @@ async def chat_socket(ws: WebSocket):
                 reply_text = result["text"]
                 memory.chat_memory.add_ai_message(reply_text)
 
-                await ws.send_json({"type": "text", "data": reply_text})
+                await ws.send_json({
+                    "type": "text",
+                    "data": reply_text,
+                    "emotion": result.get("emotion"),
+                    "gesture": result.get("gesture")
+                })
 
                 if want_tts and result.get("audio"):
                     await ws.send_bytes(result["audio"])
